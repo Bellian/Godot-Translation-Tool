@@ -86,11 +86,6 @@ export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, on
         <tr className="align-top border border-gray-400 bg-white" data-entry-id={String(entry.id)}>
             <td
                 className={`px-0 py-0 align-top w-64}`}
-                onClick={() => {
-                    // if the click target is the td itself (not interactive children), focus input
-                    focusAndMoveToEnd(keyInputRef.current)
-                    setFocusedCell('key')
-                }}
             >
                 <div>
                     <input
