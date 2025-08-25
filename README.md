@@ -74,10 +74,15 @@ Add these to your `.env` (or the environment used by Docker) to enable the prote
 - Keys are highlighted while they are actively clicked/copied so you can clearly see which key you just copied.
 - If you edit a label, its key will be regenerated and the highlight will be reset to draw attention to the change.
 
-## Where to look in the repo
+## Screenshots
 
-- API routes and export endpoints live under `src/app/api/`.
-- Prisma schema is in `prisma/schema.prisma` and the local DB file is `prisma/dev.db`.
+![Projects view screenshot](docs/images/projects.png)
+
+_Projects view: list of projects and quick actions._
+
+![Groups view screenshot](docs/images/groups.png)
+
+_Groups view: groups and entries with export keys highlighted._
 
 ## Contributing
 
