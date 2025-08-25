@@ -1,6 +1,6 @@
-import prisma from '../../../../../lib/prisma'
+import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server'
-import { buildExportedKey } from '../../../../../lib/buildExportedKey'
+import { buildExportedKey } from '@/lib/buildExportedKey'
 
 type ExportLanguage = { id: number; code: string }
 type ExportTranslation = { id: number; languageId: number; text: string; language?: ExportLanguage }
@@ -16,9 +16,9 @@ function escapeCsv(value: string | null | undefined) {
     return s
 }
 
-export async function GET(req: Request, context: { params: unknown }) {
+export async function GET(req: Request, context: { params?: Promise<{ projectId?: string }> }) {
     try {
-        const resolved = (await Promise.resolve(context.params)) as { projectId?: string } | undefined
+        const resolved = await context.params
         const projectId = Number(resolved?.projectId)
         if (Number.isNaN(projectId)) return NextResponse.json({ error: 'Invalid project id' }, { status: 400 })
 

@@ -7,21 +7,22 @@ type Incoming = {
     availableLanguages: { id: number; code: string }[]
 }
 
-const DI_MODEL_ID = process.env.DI_MODEL_ID
-const DI_API_KEY = process.env.DI_API_KEY
+const AI_HOST = process.env.AI_HOST || ''
+const AI_API_KEY = process.env.AII_API_KEY || ''
+const AI_MODEL_ID = process.env.AI_MODEL_ID || ''
 
 async function callDeepInfra(prompt: string) {
-    if (!DI_MODEL_ID || !DI_API_KEY) throw new Error('Missing DI_MODEL_ID or DI_API_KEY')
+    if (!AI_MODEL_ID || !AI_API_KEY) throw new Error('Missing DI_MODEL_ID or DI_API_KEY')
 
     // call DeepInfra OpenAI-compatible endpoint
-    const res = await fetch('https://api.deepinfra.com/v1/openai/chat/completions', {
+    const res = await fetch(AI_HOST, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${DI_API_KEY}`,
+            Authorization: `Bearer ${AI_API_KEY}`,
         },
         body: JSON.stringify({
-            model: DI_MODEL_ID,
+            model: AI_MODEL_ID,
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.2,
             max_tokens: 1200,
@@ -72,19 +73,19 @@ export async function POST(req: Request) {
         console.log('Model output:', content)
 
         // try to parse JSON from the model output
-        let parsed: any = null
+        let parsed: null | { translations: Record<string, string>[] } = null
         try {
             // sometimes model may include markdown or text; attempt to extract JSON substring
             const m = content?.match(/\{[\s\S]*\}/)
             const jsonText = m ? m[0] : content
             parsed = JSON.parse(jsonText)
-        } catch (err) {
+        } catch {
             return NextResponse.json({ error: 'Failed to parse model output', raw: content }, { status: 500 })
         }
 
         // expected shape { translations: { code: text } }
-        return NextResponse.json({ translations: parsed.translations ?? {} })
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message ?? String(err) }, { status: 500 })
+        return NextResponse.json({ translations: parsed?.translations ?? {} })
+    } catch (err) {
+        return NextResponse.json({ error: (err as Error)?.message ?? String(err) }, { status: 500 })
     }
 }

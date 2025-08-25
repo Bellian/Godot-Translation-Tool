@@ -1,9 +1,9 @@
-import prisma from '../../../../../lib/prisma'
+import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-export async function POST(req: Request, context: { params: unknown }) {
+export async function POST(req: Request, context: { params?: Promise<{ projectId?: string }> }) {
     try {
-        const resolved = (await Promise.resolve(context.params)) as { projectId?: string } | undefined
+        const resolved = await context.params
         const projectId = Number(resolved?.projectId)
         if (Number.isNaN(projectId)) return NextResponse.json({ error: 'Invalid project id' }, { status: 400 })
 
@@ -19,9 +19,9 @@ export async function POST(req: Request, context: { params: unknown }) {
     }
 }
 
-export async function DELETE(req: Request, context: { params: unknown }) {
+export async function DELETE(req: Request, context: { params?: Promise<{ projectId?: string }> }) {
     try {
-        const resolved = (await Promise.resolve(context.params)) as { projectId?: string } | undefined
+        const resolved = await context.params
         const projectId = Number(resolved?.projectId)
         if (Number.isNaN(projectId)) return NextResponse.json({ error: 'Invalid project id' }, { status: 400 })
 

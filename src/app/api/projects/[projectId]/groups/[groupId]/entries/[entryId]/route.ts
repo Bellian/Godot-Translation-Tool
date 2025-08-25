@@ -1,4 +1,4 @@
-import prisma from '../../../../../../../../lib/prisma'
+import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
 interface BodyData {
@@ -7,9 +7,9 @@ interface BodyData {
     copied?: boolean;
 }
 
-export async function PATCH(req: Request, context: { params: unknown }) {
+export async function PATCH(req: Request, context: { params?: Promise<{ projectId?: string; groupId?: string; entryId?: string }> }) {
     try {
-        const resolved = (await Promise.resolve(context.params)) as { projectId?: string; groupId?: string; entryId?: string } | undefined
+        const resolved = await context.params
         const entryId = Number(resolved?.entryId)
         if (Number.isNaN(entryId)) return NextResponse.json({ error: 'Invalid entry id' }, { status: 400 })
 
@@ -31,10 +31,10 @@ export async function PATCH(req: Request, context: { params: unknown }) {
     }
 }
 
-export async function POST(req: Request, context: { params: unknown }) {
+export async function POST(req: Request, context: { params?: Promise<{ projectId?: string; groupId?: string; entryId?: string }> }) {
     // create or update a translation for this entry
     try {
-        const resolved = (await Promise.resolve(context.params)) as { projectId?: string; groupId?: string; entryId?: string } | undefined
+        const resolved = await context.params
         const entryId = Number(resolved?.entryId)
         if (Number.isNaN(entryId)) return NextResponse.json({ error: 'Invalid entry id' }, { status: 400 })
 

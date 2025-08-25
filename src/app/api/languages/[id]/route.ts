@@ -1,9 +1,9 @@
-import prisma from '../../../../lib/prisma'
+import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-export async function PATCH(req: Request, context: { params: unknown }) {
+export async function PATCH(req: Request, context: { params: Promise<{ id?: string }> }) {
     try {
-        const resolved = (await Promise.resolve(context.params)) as { id?: string } | undefined
+        const resolved = await context.params
         const id = Number(resolved?.id)
         if (Number.isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
         const body = await req.json()

@@ -1,9 +1,9 @@
-import prisma from '../../../../../../../lib/prisma'
+import prisma from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 
-export async function POST(req: Request, context: { params: unknown }) {
+export async function POST(req: Request, context: { params?: Promise<{ projectId?: string; groupId?: string }> }) {
     try {
-        const resolved = (await Promise.resolve(context.params)) as { projectId?: string; groupId?: string } | undefined
+        const resolved = await context.params
         const groupId = Number(resolved?.groupId)
         if (Number.isNaN(groupId)) return NextResponse.json({ error: 'Invalid group id' }, { status: 400 })
 
@@ -19,9 +19,9 @@ export async function POST(req: Request, context: { params: unknown }) {
     }
 }
 
-export async function DELETE(req: Request, context: { params: unknown }) {
+export async function DELETE(req: Request, context: { params?: Promise<{ projectId?: string; groupId?: string }> }) {
     try {
-        const resolved = (await Promise.resolve(context.params)) as { projectId?: string; groupId?: string } | undefined
+        const resolved = await context.params
         const groupId = Number(resolved?.groupId)
         if (Number.isNaN(groupId)) return NextResponse.json({ error: 'Invalid group id' }, { status: 400 })
 
