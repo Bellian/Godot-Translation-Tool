@@ -1,21 +1,16 @@
 # Godot Translation Tool
 
-A small web tool to help developers translate Godot games. It provides a simple UI and API to manage translatable strings, produce Godot-readable CSV exports, and assist with AI translations.
+This small web tool helps developers translate Godot games by providing a simple UI and API to manage translatable strings, produce Godot-readable CSV exports, and assist with AI translations. It's designed to be local-first and Docker-ready, using a lightweight SQLite database for local development. Key behavior includes automatic export key generation with visual highlighting (keys are highlighted until clicked, clicking copies the key, and keys are regenerated when labels change), Godot CSV export formatting, and an optional AI translation feature that preserves placeholders like `{placeholder}` and BBCode tags (for example `[b]text[/b]` -> `[b]translated[/b]`).
 
-## Key features
+## Collaboration & multi-user usage
 
-- Translate and manage strings for Godot projects.
-- Local-first: run locally for development and testing.
-- Docker-ready: get the app hosted within minutes using Docker.
-- SQLite database (lightweight, file-based) for local development.
-- Export translations to Godot-readable CSV files.
-- Automatic export keys and visual highlighting:
-  - Each translatable label gets an export key generated automatically.
-  - Clicking a key copies it and keeps the key highlighted while clicked.
-  - If a label changes, its export key is updated and the highlight is reset so you notice the change.
-- AI translation support:
-  - Optional: integrate an AI translation service by configuring environment variables (see below).
-  - The AI translation respects placeholders like `{placeholder}` and preserves BBCode tags (for example `[b]text[/b]` -> `[b]translated[/b]`).
+This tool is designed to support collaborative translation workflows. Multiple contributors can edit projects, groups and entries when the application is hosted in a shared environment (for example, a server or a Docker deployment using the same database file). Practical notes:
+
+- Run the app in a shared environment (Docker, VPS, or any server) so colleagues access the same database/backend rather than separate local copies.
+- For larger/remote teams consider switching the Prisma datasource from SQLite to a networked database (Postgres/MySQL) so concurrent edits scale and avoid file-lock issues.
+- Basic Auth is provided as a lightweight access control; for public-facing deployments add stronger auth to protect collaborators' data.
+
+These simple deployment patterns let multiple users manage translations together while keeping the app local-first and easy to self-host.
 
 ## Quick start — local
 
@@ -30,10 +25,11 @@ cp example.env .env
 
 ```bash
 npm install
-npm run dev
+npm run build
+npm run start
 ```
 
-The app expects a SQLite file (the project includes `prisma/dev.db`). Prisma is used for DB access.
+After installation the project will create the SQLite DB at `prisma/dev.db`.
 
 ## Quick start — Docker
 
@@ -71,7 +67,7 @@ Add these to your `.env` (or the environment used by Docker) to enable the prote
 
 ## Notes on export-key highlighting
 
-- Keys are highlighted while they are actively clicked/copied so you can clearly see which key you just copied.
+- Keys are highlighted red until you click them and copy them to your clipboard.
 - If you edit a label, its key will be regenerated and the highlight will be reset to draw attention to the change.
 
 ## Screenshots
