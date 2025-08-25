@@ -41,7 +41,8 @@ async function callDeepInfra(prompt: string) {
 
 function buildPrompt(input: Incoming) {
     const available = input.availableLanguages.map((l) => l.code).join(', ')
-    const toTranslate = input.translations.filter((t) => !t.text).map((t) => t.languageCode)
+    // consider blank or whitespace-only texts as missing
+    const toTranslate = input.translations.filter((t) => !t.text || t.text.trim() === '').map((t) => t.languageCode)
     const existing = input.translations
         .map((t) => ({ code: t.languageCode, text: t.text }))
     const context = {
@@ -67,10 +68,15 @@ export async function POST(req: Request) {
     try {
         const body: Incoming = await req.json()
 
+        // If there are no missing translations (treat whitespace-only as missing), skip calling the AI
+        const missing = body.translations.filter((t) => !t.text || t.text.trim() === '').map((t) => t.languageCode)
+        if (missing.length === 0) {
+            // nothing to translate
+            return NextResponse.json({ translations: {} })
+        }
+
         const prompt = buildPrompt(body)
         const content = await callDeepInfra(prompt)
-
-        console.log('Model output:', content)
 
         // try to parse JSON from the model output
         let parsed: null | { translations: Record<string, string>[] } = null
