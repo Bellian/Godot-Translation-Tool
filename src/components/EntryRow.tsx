@@ -3,6 +3,7 @@
 import AutoGrowTextarea from './AutoGrowTextarea'
 import FormControl from './FormControl'
 import { useState } from 'react'
+import { useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrash, faRobot } from '@fortawesome/free-solid-svg-icons'
 
@@ -19,9 +20,10 @@ type Props = {
     onCopy: (entryId: number, entryKey: string, currentCopied?: boolean) => void
     copiedId: number | null
     exportedKey: string
+    aiEnabled: boolean
 }
 
-export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, onUpdateTranslation, onCopy, copiedId, exportedKey }: Props) {
+export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, onUpdateTranslation, onCopy, copiedId, exportedKey, aiEnabled }: Props) {
     const [localKey, setLocalKey] = useState(entry.key)
     const [translating, setTranslating] = useState(false)
 
@@ -70,6 +72,7 @@ export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, on
             <td className="px-0 py-0 border-s border-gray-400 w-0">
                 <div className="flex items-center gap-2 px-2 py-1">
                     <button
+                        disabled={aiEnabled === false}
                         onClick={async () => {
                             // translate using server-side route
                             try {
@@ -111,7 +114,7 @@ export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, on
                         }}
                         aria-label="Translate entry"
                         title="Translate"
-                        className="text-sm text-indigo-600 cursor-pointer leading-none"
+                        className={`text-sm text-indigo-600 cursor-pointer leading-none ${aiEnabled === false ? 'opacity-40 cursor-not-allowed' : ''}`}
                         tabIndex={-1}
                     >
                         <FontAwesomeIcon icon={faRobot} className={translating ? 'animate-spin' : ''} />
