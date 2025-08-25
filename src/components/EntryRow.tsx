@@ -27,6 +27,46 @@ export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, on
     const [localKey, setLocalKey] = useState(entry.key)
     const [translating, setTranslating] = useState(false)
 
+    const autocompleteAI = async () => {
+        // translate using server-side route
+        try {
+            setTranslating(true)
+            const payload = {
+                key: entry.key,
+                exportedKey,
+                translations: entry.translations.map((t) => {
+                    const lang = languages.find((l) => l.id === t.languageId)
+                    return { languageCode: lang?.code ?? String(t.languageId), text: t.text }
+                }),
+                // include all project languages (codes)
+                availableLanguages: languages.map((l) => ({ id: l.id, code: l.code })),
+            }
+
+            const res = await fetch('/api/translate-entry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+
+            if (!res.ok) throw new Error('Translation request failed')
+            const body = await res.json()
+
+            // body.translations is expected to be a mapping { languageCode: text }
+            if (body?.translations && typeof body.translations === 'object') {
+                for (const [code, text] of Object.entries(body.translations)) {
+                    const lang = languages.find((l) => l.code === code)
+                    if (lang) {
+                        onUpdateTranslation(entry.id, lang.id, String(text ?? ''))
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Translate failed', err)
+        } finally {
+            setTranslating(false)
+        }
+    }
+
     return (
         <tr className="align-top border border-gray-400 bg-white" data-entry-id={String(entry.id)}>
             <td className="px-0 py-0 align-top w-64">
@@ -73,45 +113,7 @@ export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, on
                 <div className="flex items-center gap-2 px-2 py-1">
                     <button
                         disabled={aiEnabled === false}
-                        onClick={async () => {
-                            // translate using server-side route
-                            try {
-                                setTranslating(true)
-                                const payload = {
-                                    key: entry.key,
-                                    exportedKey,
-                                    translations: entry.translations.map((t) => {
-                                        const lang = languages.find((l) => l.id === t.languageId)
-                                        return { languageCode: lang?.code ?? String(t.languageId), text: t.text }
-                                    }),
-                                    // include all project languages (codes)
-                                    availableLanguages: languages.map((l) => ({ id: l.id, code: l.code })),
-                                }
-
-                                const res = await fetch('/api/translate-entry', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(payload),
-                                })
-
-                                if (!res.ok) throw new Error('Translation request failed')
-                                const body = await res.json()
-
-                                // body.translations is expected to be a mapping { languageCode: text }
-                                if (body?.translations && typeof body.translations === 'object') {
-                                    for (const [code, text] of Object.entries(body.translations)) {
-                                        const lang = languages.find((l) => l.code === code)
-                                        if (lang) {
-                                            onUpdateTranslation(entry.id, lang.id, String(text ?? ''))
-                                        }
-                                    }
-                                }
-                            } catch (err) {
-                                console.error('Translate failed', err)
-                            } finally {
-                                setTranslating(false)
-                            }
-                        }}
+                        onClick={autocompleteAI}
                         aria-label="Translate entry"
                         title="Translate"
                         className={`text-sm text-indigo-600 cursor-pointer leading-none ${aiEnabled === false ? 'opacity-40 cursor-not-allowed' : ''}`}

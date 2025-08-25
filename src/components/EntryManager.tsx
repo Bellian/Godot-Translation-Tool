@@ -21,25 +21,8 @@ export default function EntryManager({ projectId, groupId, projectName, groupNam
     const [aiEnabled, setAiEnabled] = useState<boolean>(false)
 
     useEffect(() => {
-        let mounted = true
-            ; (async () => {
-                try {
-                    const res = await fetch('/api/ai-enabled')
-                    if (!mounted) return
-                    if (!res.ok) {
-                        setAiEnabled(false)
-                        return
-                    }
-                    const body = await res.json()
-                    setAiEnabled(Boolean(body?.enabled))
-                } catch (e) {
-                    if (mounted) setAiEnabled(false)
-                }
-            })()
-
-        return () => {
-            mounted = false
-        }
+        const val = (window as any).__NEXT_PUBLIC_AI_ENABLED
+        setAiEnabled(Boolean(val === true))
     }, [])
 
     useEffect(() => setEntries([...initialEntries].slice().sort((a, b) => a.id - b.id)), [initialEntries])

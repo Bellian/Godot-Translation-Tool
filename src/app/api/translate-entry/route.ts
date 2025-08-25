@@ -8,11 +8,11 @@ type Incoming = {
 }
 
 const AI_HOST = process.env.AI_HOST || ''
-const AI_API_KEY = process.env.AII_API_KEY || ''
+const AI_API_KEY = process.env.AI_API_KEY || ''
 const AI_MODEL_ID = process.env.AI_MODEL_ID || ''
 
 async function callDeepInfra(prompt: string) {
-    if (!AI_MODEL_ID || !AI_API_KEY) throw new Error('Missing DI_MODEL_ID or DI_API_KEY')
+    if (!AI_MODEL_ID || !AI_API_KEY || !AI_HOST) throw new Error('Missing AI_HOST, AI_API_KEY or AI_MODEL_ID env vars')
 
     // call DeepInfra OpenAI-compatible endpoint
     const res = await fetch(AI_HOST, {
