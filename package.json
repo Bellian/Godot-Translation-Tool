@@ -7,7 +7,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "docker": "touch ./prisma/dev.db && npx prisma migrate deploy && npx prisma db push && docker compose up --force-recreate --build -d"
   },
   "dependencies": {
     "@prisma/client": "^6.14.0",
