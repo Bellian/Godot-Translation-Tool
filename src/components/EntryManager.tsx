@@ -21,7 +21,8 @@ export default function EntryManager({ projectId, groupId, projectName, groupNam
     const [aiEnabled, setAiEnabled] = useState<boolean>(false)
 
     useEffect(() => {
-        const val = (window as any).__NEXT_PUBLIC_AI_ENABLED
+        const w = window as unknown as Window & { __NEXT_PUBLIC_AI_ENABLED?: unknown }
+        const val = w.__NEXT_PUBLIC_AI_ENABLED
         setAiEnabled(Boolean(val === true))
     }, [])
 

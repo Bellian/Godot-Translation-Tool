@@ -2,8 +2,8 @@
 
 import AutoGrowTextarea from './AutoGrowTextarea'
 import FormControl from './FormControl'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import { useState, useRef } from 'react'
+import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrash, faRobot } from '@fortawesome/free-solid-svg-icons'
 
@@ -26,6 +26,9 @@ type Props = {
 export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, onUpdateTranslation, onCopy, copiedId, exportedKey, aiEnabled }: Props) {
     const [localKey, setLocalKey] = useState(entry.key)
     const [translating, setTranslating] = useState(false)
+    const keyInputRef = useRef<HTMLInputElement | null>(null)
+    const textareaRefs = useRef<Record<number, HTMLTextAreaElement | null>>({})
+    const [focusedCell, setFocusedCell] = useState<string | null>(null)
 
     const autocompleteAI = async () => {
         // translate using server-side route
@@ -67,15 +70,39 @@ export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, on
         }
     }
 
+    // helpers to focus and set caret to end
+    const focusAndMoveToEnd = (el: HTMLInputElement | HTMLTextAreaElement | null) => {
+        if (!el) return
+        el.focus()
+        try {
+            const len = el.value.length
+            el.setSelectionRange(len, len)
+        } catch {
+            // some elements may not support setSelectionRange
+        }
+    }
+
     return (
         <tr className="align-top border border-gray-400 bg-white" data-entry-id={String(entry.id)}>
-            <td className="px-0 py-0 align-top w-64">
+            <td
+                className={`px-0 py-0 align-top w-64}`}
+                onClick={() => {
+                    // if the click target is the td itself (not interactive children), focus input
+                    focusAndMoveToEnd(keyInputRef.current)
+                    setFocusedCell('key')
+                }}
+            >
                 <div>
                     <input
+                        ref={keyInputRef}
                         className={`w-full px-2 py-1`}
                         value={localKey}
                         onChange={(ev) => setLocalKey(ev.target.value)}
-                        onBlur={() => onUpdateEntry(entry.id, localKey)}
+                        onBlur={() => {
+                            onUpdateEntry(entry.id, localKey)
+                            setFocusedCell(null)
+                        }}
+                        onFocus={() => setFocusedCell('key')}
                     />
                     <FormControl
                         help={
@@ -97,13 +124,28 @@ export default function EntryRow({ entry, languages, onRemove, onUpdateEntry, on
             {languages.map((l) => {
                 const t = entry.translations.find((tr) => tr.languageId === l.id)
                 return (
-                    <td key={l.id} className="px-0 py-0 align-top border-s border-gray-400">
+                    <td
+                        key={l.id}
+                        className={`px-0 py-0 align-top border-s border-gray-400 cursor-text ${focusedCell === String(l.id) ? 'bg-indigo-50' : ''}`}
+                        onClick={(ev) => {
+                            if (focusedCell === String(l.id)) {
+                                return ev.stopPropagation();
+                            }
+                            const el = textareaRefs.current[l.id]
+                            focusAndMoveToEnd(el)
+                            setFocusedCell(String(l.id))
+                        }}
+                    >
                         <AutoGrowTextarea
+                            ref={(el) => { textareaRefs.current[l.id] = el; }}
                             className="w-full  px-2 py-1"
                             placeholder={`— ${l.code} —`}
                             value={t?.text ?? ''}
                             onChange={(v) => onUpdateTranslation(entry.id, l.id, v)}
                             disabled={false}
+                            onFocus={() => setFocusedCell(String(l.id))}
+                            onBlur={() => setFocusedCell(null)}
+                            lang={l.code}
                         />
                     </td>
                 )

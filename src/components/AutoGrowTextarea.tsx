@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, forwardRef } from 'react'
 
 type Props = {
     value: string
@@ -8,14 +8,21 @@ type Props = {
     placeholder?: string
     className?: string
     disabled?: boolean
+    lang?: string
     style?: React.CSSProperties
+    onFocus?: (e: React.FocusEvent<HTMLTextAreaElement>) => void
+    onBlur?: (e: React.FocusEvent<HTMLTextAreaElement>) => void
 }
 
-export default function AutoGrowTextarea({ value, onChange, placeholder, className, disabled, style }: Props) {
-    const ref = useRef<HTMLTextAreaElement | null>(null)
+// Forward the underlying textarea ref so parents can call focus() and set selection.
+const AutoGrowTextarea = forwardRef<HTMLTextAreaElement, Props>(function AutoGrowTextarea(
+    { value, onChange, placeholder, className, disabled, style, onFocus, onBlur, lang }: Props,
+    ref,
+) {
+    const innerRef = useRef<HTMLTextAreaElement | null>(null)
 
     useEffect(() => {
-        const el = ref.current
+        const el = innerRef.current
         if (!el) return
         // reset height so scrollHeight is accurate
         el.style.height = '0px'
@@ -24,14 +31,25 @@ export default function AutoGrowTextarea({ value, onChange, placeholder, classNa
 
     return (
         <textarea
-            ref={ref}
+            ref={(el) => {
+                innerRef.current = el
+                // forward ref (support function or object refs)
+                if (!ref) return
+                if (typeof ref === 'function') ref(el)
+                else (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = el
+            }}
             value={value}
             placeholder={placeholder}
             onChange={(e) => onChange(e.target.value)}
-            className={className}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            className={`${className ?? ''} outline-none`}
             rows={1}
             style={{ ...style, resize: 'none', overflow: 'hidden' }}
             disabled={Boolean(disabled)}
+            lang={lang}
         />
     )
-}
+})
+
+export default AutoGrowTextarea

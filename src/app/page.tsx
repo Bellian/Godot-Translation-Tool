@@ -2,7 +2,6 @@ import prisma from "../lib/prisma";
 import ProjectsList from "../components/ProjectsList";
 
 export default async function Home() {
-  const projectCount = await prisma.project.count();
   const projects = await prisma.project.findMany({
     include: {
       projectLanguages: { include: { language: true } },
