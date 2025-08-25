@@ -25,7 +25,7 @@ type GroupWithRelations = {
 }
 
 export default async function GroupPage({ params }: Props) {
-    const resolved = (await Promise.resolve(params)) as { groupId?: string } | undefined
+    const resolved = await params
     const id = Number(resolved?.groupId)
     if (Number.isNaN(id)) {
         return (
@@ -98,3 +98,6 @@ export default async function GroupPage({ params }: Props) {
         </main>
     )
 }
+
+// Force this page to be rendered at request-time so DB queries are executed by the running server
+export const dynamic = 'force-dynamic'

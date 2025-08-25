@@ -2,6 +2,7 @@ import prisma from "../lib/prisma";
 import ProjectsList from "../components/ProjectsList";
 
 export default async function Home() {
+  const projectCount = await prisma.project.count();
   const projects = await prisma.project.findMany({
     include: {
       projectLanguages: { include: { language: true } },
@@ -18,3 +19,6 @@ export default async function Home() {
     </main>
   );
 }
+
+// Ensure this page is rendered at request time so database queries run on the running server
+export const dynamic = 'force-dynamic'

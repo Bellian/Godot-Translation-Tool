@@ -36,8 +36,8 @@ type ProjectWithRelations = {
 }
 
 export default async function ProjectPage({ params }: Props) {
-    const resolvedParams = (await Promise.resolve(params)) as { projectId?: string } | undefined
-    const id = Number(resolvedParams?.projectId)
+    const resolved = await params
+    const id = Number(resolved?.projectId)
     if (Number.isNaN(id)) {
         return (
             <main className="min-h-screen p-8">
@@ -113,3 +113,6 @@ export default async function ProjectPage({ params }: Props) {
         </main>
     )
 }
+
+// Force this page to be rendered at request-time so DB queries are executed by the running server
+export const dynamic = 'force-dynamic'
