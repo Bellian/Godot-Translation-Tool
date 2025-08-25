@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: app-translation:latest
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - BASIC_AUTH_USER
+      - BASIC_AUTH_PASS
+      - AI_HOST
+      - AI_API_KEY
+      - AI_MODEL_ID
+    volumes:
+      # Mount prisma so the container can read/write the DB file from the host during development.
+      - ./prisma:/app/prisma
+    restart: unless-stopped
