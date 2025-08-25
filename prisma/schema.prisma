@@ -1,0 +1,83 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Models for translation project
+
+model Project {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  // languages supported by this project (many-to-many)
+  projectLanguages ProjectLanguage[]
+
+  // groups that belong to this project
+  groups TranslationGroup[]
+}
+
+model Language {
+  id   Int    @id @default(autoincrement())
+  code String @unique // e.g. "en", "de"
+  name String
+
+  // projects this language is attached to
+  projectLanguages ProjectLanguage[]
+
+  // translations in this language
+  translations Translation[]
+}
+
+// Join table for many-to-many between Project and Language
+model ProjectLanguage {
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId Int
+
+  language   Language @relation(fields: [languageId], references: [id])
+  languageId Int
+
+  @@id([projectId, languageId])
+}
+
+model TranslationGroup {
+  id          Int     @id @default(autoincrement())
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   Int
+  name        String
+  description String?
+
+  entries TranslationEntry[]
+}
+
+model TranslationEntry {
+  id      Int              @id @default(autoincrement())
+  group   TranslationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId Int
+  key     String
+  comment String?
+  copied  Boolean          @default(false)
+
+  translations Translation[]
+
+  @@unique([groupId, key]) // key unique inside a group
+}
+
+model Translation {
+  id         Int              @id @default(autoincrement())
+  entry      TranslationEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entryId    Int
+  language   Language         @relation(fields: [languageId], references: [id])
+  languageId Int
+  text       String
+
+  @@unique([entryId, languageId]) // one translation per entry per language
+}
