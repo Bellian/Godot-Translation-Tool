@@ -6,3 +6,4 @@ npm-debug.log
 .env
 /*.db
 prisma/dev.db
+README.md

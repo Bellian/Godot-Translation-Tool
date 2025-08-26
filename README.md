@@ -35,8 +35,15 @@ After installation the project will create the SQLite DB at `prisma/dev.db`.
 
 You can host the app within minutes using Docker and the included docker-compose configuration:
 
+1. Copy example env and set your values:
+
 ```bash
-docker-compose up --build -d
+cp example.env .env
+# then edit .env to set database / AI variables as needed
+```
+
+```bash
+npm run docker
 ```
 
 This will build and run the service in a containerized environment.

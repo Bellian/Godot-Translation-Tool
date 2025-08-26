@@ -39,29 +39,30 @@ async function callDeepInfra(prompt: string) {
     return data?.choices?.[0]?.message?.content
 }
 
-function buildPrompt(input: Incoming) {
+function buildPrompt(input: Incoming, missing: string[]) {
     const available = input.availableLanguages.map((l) => l.code).join(', ')
     // consider blank or whitespace-only texts as missing
-    const toTranslate = input.translations.filter((t) => !t.text || t.text.trim() === '').map((t) => t.languageCode)
     const existing = input.translations
         .map((t) => ({ code: t.languageCode, text: t.text }))
     const context = {
         key: input.key,
         exportedKey: input.exportedKey,
         existingTranslations: existing,
-        availableLanguages: input.availableLanguages.map((l) => l.code),
+        availableLanguages: available,
+        missingLanguages: missing,
     }
 
     return `You are a translation assistant.
-Provided with the following JSON input for context: ${JSON.stringify(context)}
+Provided with the following JSON input for context:
 
-Return a JSON object (no extra text) with a single key "translations" mapping language codes to translated text, but only for languages that are missing (empty or blank) in the provided existingTranslations.
+\`\`\`
+${JSON.stringify(context)}
+\`\`\`
+
+Return a JSON object (ONLY THE JSON no extra text) with a single key "translations" mapping language codes to translated text, but only for languages that are missing in the provided existingTranslations.
 Texts may contain BBCode or placeholders like \`{damage}\`. Preserve the BBCode and placeholders as good as possible.
 Use concise, natural translations.
-Example: {"translations": {"es": "[color=green]hola[/color]", "fr": "[color=green]bonjour[/color]"}}.
-
-Languages available: ${available}
-Languages to translate: ${toTranslate}`
+Example: {"translations": {"es": "[color=green]hola[/color]", "fr": "[color=green]bonjour[/color]"}}.`
 }
 
 export async function POST(req: Request) {
@@ -69,14 +70,22 @@ export async function POST(req: Request) {
         const body: Incoming = await req.json()
 
         // If there are no missing translations (treat whitespace-only as missing), skip calling the AI
-        const missing = body.translations.filter((t) => !t.text || t.text.trim() === '').map((t) => t.languageCode)
+        const missing = body.availableLanguages
+            .filter((t) => {
+                return !body.translations.some((tt) => tt.languageCode === t.code) ||
+                    body.translations.some((tt) => tt.languageCode === t.code && (!tt.text || tt.text.trim() === ''))
+            })
+            .map((t) => t.code)
+
+        console.log('missing languages:', missing)
         if (missing.length === 0) {
             // nothing to translate
-            return NextResponse.json({ translations: {} })
+            return NextResponse.json({ translations: {}, message: 'No missing translations' })
         }
 
-        const prompt = buildPrompt(body)
+        const prompt = buildPrompt(body, missing)
         const content = await callDeepInfra(prompt)
+        console.log('Answer:', content);
 
         // try to parse JSON from the model output
         let parsed: null | { translations: Record<string, string>[] } = null
