@@ -1,0 +1,96 @@
+{
+    "sections": [
+        {
+            "id": "entry",
+            "lines": [
+                {
+                    "type": "switch",
+                    "condition": {
+                        "type": "didDialog",
+                        "value": "dialog1.prologue"
+                    },
+                    "nextSection": "end"
+                },
+                {
+                    "type": "nextSection",
+                    "nextSection": "prologue"
+                }
+            ]
+        },
+        {
+            "id": "prologue",
+            "lines": [
+                {
+                    "type": "showBackground",
+                    "background": "OldLady"
+                },
+                {
+                    "type": "dialog",
+                    "speaker": "Narrator",
+                    "text": "This is a sample dialog line."
+                },
+                {
+                    "type": "dialog",
+                    "speaker": "Hero",
+                    "text": "Hello there!"
+                },
+                {
+                    "type": "showBackground",
+                    "background": "OldLadyBlink"
+                },
+                {
+                    "type": "event",
+                    "name": "getEmotion",
+                    "value": "happy"
+                },
+                {
+                    "type": "options",
+                    "options": [
+                        {
+                            "condition": {
+                                "type": "hasEmotion",
+                                "value": "happy"
+                            },
+                            "text": "TRANSLATION_KEY",
+                            "nextSection": "1235"
+                        },
+                        {
+                            "text": "TRANSLATION_KEY",
+                            "nextSection": "1236"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "goodEnding",
+            "lines": [
+                {
+                    "type": "dialog",
+                    "speaker": "Narrator",
+                    "text": "Thank you for greeting back!"
+                }
+            ]
+        },
+        {
+            "id": "badEnding",
+            "lines": [
+                {
+                    "type": "dialog",
+                    "speaker": "Narrator",
+                    "text": "Stop ignoring me!"
+                }
+            ]
+        }, {
+            "id": "end",
+            "lines": [
+                {
+                    "type": "dialog",
+                    "speaker": "Narrator",
+                    "text": "The End."
+                }
+            ]
+        }
+    ],
+    "startSection": "entry"
+}

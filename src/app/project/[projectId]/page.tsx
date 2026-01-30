@@ -83,6 +83,12 @@ export default async function ProjectPage({ params }: Props) {
                     <div className="flex items-center justify-between">
                         <BackButton label="Back to projects" href='/' />
                         <div className="flex items-center gap-2">
+                            <Link
+                                href={`/project/${project.id}/dialogs`}
+                                className="px-4 py-2 text-sm bg-purple-600 text-white rounded hover:bg-purple-700"
+                            >
+                                Manage Dialogs
+                            </Link>
                             <ExportButton projectId={project.id} />
                         </div>
                     </div>
