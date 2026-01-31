@@ -11,12 +11,11 @@ type DialogLine = {
 }
 
 type Props = {
-  line: DialogLine
   editedLine: DialogLine
   onChange: (line: DialogLine) => void
 }
 
-export default function BackgroundLineEditor({ line, editedLine, onChange }: Props) {
+export default function BackgroundLineEditor({ editedLine, onChange }: Props) {
   return (
     <div>
       <label className="block text-xs font-medium mb-0.5">Background</label>

@@ -11,12 +11,11 @@ type DialogLine = {
 }
 
 type Props = {
-  line: DialogLine
   editedLine: DialogLine
   onChange: (line: DialogLine) => void
 }
 
-export default function EventLineEditor({ line, editedLine, onChange }: Props) {
+export default function EventLineEditor({ editedLine, onChange }: Props) {
   return (
     <div className="grid grid-cols-[200px_1fr] gap-2">
       <div>

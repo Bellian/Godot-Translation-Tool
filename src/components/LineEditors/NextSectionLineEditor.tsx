@@ -17,14 +17,12 @@ type Section = {
 }
 
 type Props = {
-  line: DialogLine
   editedLine: DialogLine
   sections: Section[]
   onChange: (line: DialogLine) => void
 }
 
 export default function NextSectionLineEditor({
-  line,
   editedLine,
   sections,
   onChange,
@@ -34,7 +32,7 @@ export default function NextSectionLineEditor({
   try {
     const parsed = JSON.parse(editedLine.data || '{}')
     nextSection = parsed.nextSection || ''
-  } catch (e) {
+  } catch {
     // Invalid JSON, keep empty
   }
 

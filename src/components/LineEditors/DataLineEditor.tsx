@@ -11,12 +11,11 @@ type DialogLine = {
 }
 
 type Props = {
-  line: DialogLine
   editedLine: DialogLine
   onChange: (line: DialogLine) => void
 }
 
-export default function DataLineEditor({ line, editedLine, onChange }: Props) {
+export default function DataLineEditor({ editedLine, onChange }: Props) {
   return (
     <div>
       <label className="block text-xs font-medium mb-0.5">Data (JSON)</label>

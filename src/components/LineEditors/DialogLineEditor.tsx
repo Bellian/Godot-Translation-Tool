@@ -35,7 +35,6 @@ type DialogLine = {
 }
 
 type Props = {
-  line: DialogLine
   editedLine: DialogLine
   entry: TranslationEntry | undefined
   projectLanguages: Language[]
@@ -43,12 +42,10 @@ type Props = {
   projectId: number
   dialogGroupId: number | undefined
   onChange: (line: DialogLine) => void
-  onCreateEntry: () => void
   onRefresh: () => void
 }
 
 export default function DialogLineEditor({
-  line,
   editedLine,
   entry,
   projectLanguages,
@@ -56,7 +53,6 @@ export default function DialogLineEditor({
   projectId,
   dialogGroupId,
   onChange,
-  onCreateEntry,
   onRefresh,
 }: Props) {
   // Get the translation for the selected language

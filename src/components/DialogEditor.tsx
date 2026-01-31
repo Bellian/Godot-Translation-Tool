@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import LineEditor from './LineEditor'
+import DialogVisualization from './DialogVisualization'
 
 type Language = {
   id: number
@@ -189,30 +190,6 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
     }
   }
 
-  const handleCreateEntryForLine = async (sectionDbId: number, lineId: number) => {
-    const key = `${dialog.id}_${Date.now()}`
-    
-    // Create entry in dialog group
-    const res = await fetch(`/api/projects/${dialog.projectId}/groups/${dialogGroup?.id}/entries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key, comment: 'Dialog line', copied: false }),
-    })
-
-    if (res.ok) {
-      const entry = await res.json()
-      
-      // Update the line to reference this entry
-      await fetch(`/api/dialogs/${dialog.id}/sections/${sectionDbId}/lines/${lineId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ textKey: entry.key }),
-      })
-
-      router.refresh()
-    }
-  }
-
   const handleExport = async () => {
     window.location.href = `/api/dialogs/${dialog.id}/export`
   }
@@ -275,6 +252,9 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
 
   return (
     <div className="space-y-6">
+      {/* Dialog Visualization */}
+      <DialogVisualization sections={sections} startSection={startSection} />
+
       {/* Start Section Config */}
       <section className="bg-white p-6 rounded shadow">
         <div className="flex items-center justify-between mb-4">
@@ -445,7 +425,6 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
                           selectedLanguageId={selectedLanguageId}
                           sections={sections}
                           onDelete={() => handleDeleteLine(section.id, line.id)}
-                          onCreateEntry={() => handleCreateEntryForLine(section.id, line.id)}
                           onRefresh={() => router.refresh()}
                         />
                       </div>

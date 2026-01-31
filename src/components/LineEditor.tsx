@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import DialogLineEditor from './LineEditors/DialogLineEditor'
 import BackgroundLineEditor from './LineEditors/BackgroundLineEditor'
 import EventLineEditor from './LineEditors/EventLineEditor'
-import DataLineEditor from './LineEditors/DataLineEditor'
 import OptionsLineEditor from './LineEditors/OptionsLineEditor'
 import NextSectionLineEditor from './LineEditors/NextSectionLineEditor'
 import SwitchLineEditor from './LineEditors/SwitchLineEditor'
@@ -58,7 +57,6 @@ type Props = {
   selectedLanguageId: number | null
   sections: DialogSection[]
   onDelete: () => void
-  onCreateEntry: () => void
   onRefresh: () => void
 }
 
@@ -72,7 +70,6 @@ export default function LineEditor({
   selectedLanguageId,
   sections,
   onDelete,
-  onCreateEntry,
   onRefresh,
 }: Props) {
   const [editedLine, setEditedLine] = useState(line)
@@ -214,7 +211,6 @@ export default function LineEditor({
       <div className="text-sm space-y-1">
         {line.type === 'dialog' && (
           <DialogLineEditor
-            line={line}
             editedLine={editedLine}
             entry={entry}
             projectLanguages={projectLanguages}
@@ -222,27 +218,23 @@ export default function LineEditor({
             projectId={projectId}
             dialogGroupId={dialogGroup?.id}
             onChange={setEditedLine}
-            onCreateEntry={onCreateEntry}
             onRefresh={onRefresh}
           />
         )}
         {line.type === 'showBackground' && (
           <BackgroundLineEditor
-            line={line}
             editedLine={editedLine}
             onChange={setEditedLine}
           />
         )}
         {line.type === 'event' && (
           <EventLineEditor
-            line={line}
             editedLine={editedLine}
             onChange={setEditedLine}
           />
         )}
         {line.type === 'options' && (
           <OptionsLineEditor
-            line={line}
             editedLine={editedLine}
             entries={dialogGroup?.entries || []}
             projectLanguages={projectLanguages}
@@ -256,7 +248,6 @@ export default function LineEditor({
         )}
         {line.type === 'nextSection' && (
           <NextSectionLineEditor
-            line={line}
             editedLine={editedLine}
             sections={sections.map(s => ({ sectionId: s.sectionId }))}
             onChange={setEditedLine}
@@ -264,7 +255,6 @@ export default function LineEditor({
         )}
         {line.type === 'switch' && (
           <SwitchLineEditor
-            line={line}
             editedLine={editedLine}
             sections={sections.map(s => ({ sectionId: s.sectionId }))}
             onChange={setEditedLine}

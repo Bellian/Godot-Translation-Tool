@@ -25,14 +25,12 @@ type SwitchData = {
 }
 
 type Props = {
-  line: DialogLine
   editedLine: DialogLine
   sections: Section[]
   onChange: (line: DialogLine) => void
 }
 
 export default function SwitchLineEditor({
-  line,
   editedLine,
   sections,
   onChange,
@@ -49,7 +47,7 @@ export default function SwitchLineEditor({
       condition: parsed.condition || { type: '', value: '' },
       nextSection: parsed.nextSection || ''
     }
-  } catch (e) {
+  } catch {
     // Invalid JSON, keep defaults
   }
 

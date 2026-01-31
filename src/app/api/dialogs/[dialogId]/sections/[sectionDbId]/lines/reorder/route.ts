@@ -7,7 +7,7 @@ type Params = {
 
 // PATCH /api/dialogs/[dialogId]/sections/[sectionDbId]/lines/reorder - reorder lines
 export async function PATCH(request: Request, { params }: { params: Promise<Params> }) {
-  const { sectionDbId } = await params
+  await params // Ensure params is consumed
   const body = await request.json()
   const { lineIds } = body
 

@@ -4,12 +4,12 @@ import JSZip from 'jszip'
 import { buildExportedKey } from '@/lib/buildExportedKey'
 
 type Params = {
-  params: { projectId: string }
+  projectId: string
 }
 
-export async function GET(request: NextRequest, { params }: Params) {
-  const resolved = await params
-  const projectId = Number(resolved.projectId)
+export async function GET(request: NextRequest, { params }: { params: Promise<Params> }) {
+  const { projectId: projectIdStr } = await params
+  const projectId = Number(projectIdStr)
 
   if (isNaN(projectId)) {
     return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 })
@@ -47,6 +47,22 @@ export async function GET(request: NextRequest, { params }: Params) {
   // Create a zip file
   const zip = new JSZip()
 
+  type ExportLine = {
+    type: string
+    speaker?: string | null
+    text?: string
+    background?: string | null
+    name?: string | null
+    value?: string | null
+    data?: string | null
+    [key: string]: unknown
+  }
+
+  type ExportOption = {
+    text?: string
+    [key: string]: unknown
+  }
+
   // Process each dialog
   for (const dialog of dialogs) {
     // Get the dialog's translation group
@@ -57,12 +73,12 @@ export async function GET(request: NextRequest, { params }: Params) {
       },
     })
 
-    const exportData: any = {
+    const exportData = {
       startSection: dialog.startSection || '',
       sections: dialog.sections.map((section) => ({
         id: section.sectionId,
         lines: section.lines.map((line) => {
-          const baseLine: any = {
+          const baseLine: ExportLine = {
             type: line.type,
           }
 
@@ -79,10 +95,10 @@ export async function GET(request: NextRequest, { params }: Params) {
           // Parse data field for options and other types
           if (line.data) {
             try {
-              const parsed = JSON.parse(line.data)
+              const parsed = JSON.parse(line.data) as Record<string, unknown>
               // If there are options, convert their text keys to complete keys
               if (parsed.options && Array.isArray(parsed.options)) {
-                parsed.options = parsed.options.map((opt: any) => ({
+                parsed.options = parsed.options.map((opt: ExportOption) => ({
                   ...opt,
                   text: opt.text ? buildExportedKey(project.name, dialogGroup?.name || `Dialog_${dialog.id}`, opt.text) : opt.text
                 }))
@@ -110,7 +126,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   const filename = `${project.name}_dialogs_${timestamp}.zip`
 
   // Return as zip file download
-  return new NextResponse(zipBuffer as any, {
+  return new NextResponse(Buffer.from(zipBuffer), {
     headers: {
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${filename}"`,

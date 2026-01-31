@@ -44,7 +44,6 @@ type OptionData = {
 }
 
 type Props = {
-  line: DialogLine
   editedLine: DialogLine
   entries: TranslationEntry[]
   projectLanguages: Language[]
@@ -57,7 +56,6 @@ type Props = {
 }
 
 export default function OptionsLineEditor({
-  line,
   editedLine,
   entries,
   projectLanguages,
@@ -81,6 +79,7 @@ export default function OptionsLineEditor({
 
   useEffect(() => {
     setOptions(parseOptions())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editedLine.data])
 
   const updateOptions = (newOptions: OptionData[]) => {
@@ -138,7 +137,6 @@ export default function OptionsLineEditor({
         <OptionEditor
           key={index}
           option={option}
-          index={index}
           entry={entries.find((e) => e.key === option.text)}
           projectLanguages={projectLanguages}
           selectedLanguageId={selectedLanguageId}
@@ -168,7 +166,6 @@ export default function OptionsLineEditor({
 
 type OptionEditorProps = {
   option: OptionData
-  index: number
   entry: TranslationEntry | undefined
   projectLanguages: Language[]
   selectedLanguageId: number | null
@@ -188,7 +185,6 @@ type OptionEditorProps = {
 
 function OptionEditor({
   option,
-  index,
   entry,
   projectLanguages,
   selectedLanguageId,

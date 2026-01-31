@@ -3,12 +3,11 @@ import prisma from '@/lib/prisma'
 import { buildExportedKey } from '@/lib/buildExportedKey'
 
 type Params = {
-  params: { dialogId: string }
+  dialogId: string
 }
 
-export async function GET(request: NextRequest, { params }: Params) {
-  const resolved = await params
-  const dialogId = resolved.dialogId
+export async function GET(request: NextRequest, { params }: { params: Promise<Params> }) {
+  const { dialogId } = await params
 
   // Fetch dialog with all sections and lines
   const dialog = await prisma.dialog.findUnique({
@@ -49,13 +48,29 @@ export async function GET(request: NextRequest, { params }: Params) {
     },
   })
 
+  type ExportLine = {
+    type: string
+    speaker?: string | null
+    text?: string
+    background?: string | null
+    name?: string | null
+    value?: string | null
+    data?: string | null
+    [key: string]: unknown
+  }
+
+  type ExportOption = {
+    text?: string
+    [key: string]: unknown
+  }
+
   // Build the export structure
-  const exportData: any = {
+  const exportData = {
     startSection: dialog.startSection || '',
     sections: dialog.sections.map((section) => ({
       id: section.sectionId,
       lines: section.lines.map((line) => {
-        const baseLine: any = {
+        const baseLine: ExportLine = {
           type: line.type,
         }
 
@@ -72,10 +87,10 @@ export async function GET(request: NextRequest, { params }: Params) {
         // Parse data field for options and other types
         if (line.data) {
           try {
-            const parsed = JSON.parse(line.data)
+            const parsed = JSON.parse(line.data) as Record<string, unknown>
             // If there are options, convert their text keys to complete keys
             if (parsed.options && Array.isArray(parsed.options)) {
-              parsed.options = parsed.options.map((opt: any) => ({
+              parsed.options = parsed.options.map((opt: ExportOption) => ({
                 ...opt,
                 text: opt.text ? buildExportedKey(dialog.project.name, dialogGroup?.name || `Dialog_${dialogId}`, opt.text) : opt.text
               }))
