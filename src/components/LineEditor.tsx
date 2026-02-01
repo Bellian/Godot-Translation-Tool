@@ -53,9 +53,12 @@ type Props = {
   dialogId: string
   projectId: number
   dialogGroup: TranslationGroup | null
+  speakersGroup: TranslationGroup | null
+  projectName: string
   projectLanguages: Language[]
   selectedLanguageId: number | null
   sections: DialogSection[]
+  allDialogSections: string[]
   onDelete: () => void
   onRefresh: () => void
 }
@@ -66,9 +69,12 @@ export default function LineEditor({
   dialogId,
   projectId,
   dialogGroup,
+  speakersGroup,
+  projectName,
   projectLanguages,
   selectedLanguageId,
   sections,
+  allDialogSections,
   onDelete,
   onRefresh,
 }: Props) {
@@ -85,9 +91,9 @@ export default function LineEditor({
   // Auto-save for dialog lines when speaker changes
   useEffect(() => {
     // Only save if speaker actually changed from what we last saved
-    if (line.type === 'dialog' && 
-        editedLine.speaker !== previousSpeakerRef.current) {
-      
+    if (line.type === 'dialog' &&
+      editedLine.speaker !== previousSpeakerRef.current) {
+
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
       }
@@ -149,8 +155,8 @@ export default function LineEditor({
   }, [editedLine.background, line.type, line.background, line.id, dialogId, sectionDbId])
 
   useEffect(() => {
-    if (line.type === 'event' && 
-        (editedLine.eventName !== line.eventName || editedLine.eventValue !== line.eventValue)) {
+    if (line.type === 'event' &&
+      (editedLine.eventName !== line.eventName || editedLine.eventValue !== line.eventValue)) {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
       }
@@ -172,8 +178,8 @@ export default function LineEditor({
   }, [editedLine.eventName, editedLine.eventValue, line.type, line.eventName, line.eventValue, line.id, dialogId, sectionDbId])
 
   useEffect(() => {
-    if ((line.type === 'switch' || line.type === 'nextSection' || line.type === 'options') && 
-        editedLine.data !== line.data) {
+    if ((line.type === 'switch' || line.type === 'nextSection' || line.type === 'options') &&
+      editedLine.data !== line.data) {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
       }
@@ -213,6 +219,8 @@ export default function LineEditor({
           <DialogLineEditor
             editedLine={editedLine}
             entry={entry}
+            speakersGroup={speakersGroup}
+            projectName={projectName}
             projectLanguages={projectLanguages}
             selectedLanguageId={selectedLanguageId}
             projectId={projectId}
@@ -240,8 +248,11 @@ export default function LineEditor({
             projectLanguages={projectLanguages}
             selectedLanguageId={selectedLanguageId}
             projectId={projectId}
+            dialogId={dialogId}
+            sectionDbId={sectionDbId}
             dialogGroupId={dialogGroup?.id}
             sections={sections.map(s => ({ id: s.sectionId }))}
+            allDialogSections={allDialogSections}
             onChange={setEditedLine}
             onRefresh={onRefresh}
           />
@@ -257,6 +268,7 @@ export default function LineEditor({
           <SwitchLineEditor
             editedLine={editedLine}
             sections={sections.map(s => ({ sectionId: s.sectionId }))}
+            allDialogSections={allDialogSections}
             onChange={setEditedLine}
           />
         )}

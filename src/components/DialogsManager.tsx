@@ -169,7 +169,7 @@ export default function DialogsManager({ projectId, initialDialogs }: Props) {
 
       {dialogs.length > 0 && (
         <ul className="space-y-2">
-          {dialogs.map((dialog) => (
+          {[...dialogs].sort((a, b) => a.name.localeCompare(b.name)).map((dialog) => (
             <li key={dialog.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50">
               <div className="flex-1">
                 <div className="flex items-center gap-2">

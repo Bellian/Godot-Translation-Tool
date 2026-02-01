@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { buildExportedKey } from '@/lib/buildExportedKey'
 
 type Language = {
   id: number
@@ -34,9 +35,17 @@ type DialogLine = {
   data?: string | null
 }
 
+type TranslationGroup = {
+  id: number
+  name: string
+  entries: TranslationEntry[]
+}
+
 type Props = {
   editedLine: DialogLine
   entry: TranslationEntry | undefined
+  speakersGroup: TranslationGroup | null
+  projectName: string
   projectLanguages: Language[]
   selectedLanguageId: number | null
   projectId: number
@@ -48,6 +57,8 @@ type Props = {
 export default function DialogLineEditor({
   editedLine,
   entry,
+  speakersGroup,
+  projectName,
   projectLanguages,
   selectedLanguageId,
   projectId,
@@ -59,9 +70,10 @@ export default function DialogLineEditor({
   const selectedTranslation = entry?.translations.find(
     (t) => t.languageId === selectedLanguageId
   )
-  
+
   const [localText, setLocalText] = useState(selectedTranslation?.text || '')
   const textTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [creatingEntry, setCreatingEntry] = useState<boolean>(false)
 
   // Update local text when the entry changes (e.g., after refresh or language change)
   useEffect(() => {
@@ -70,7 +82,7 @@ export default function DialogLineEditor({
 
   const handleTextChange = (newText: string) => {
     setLocalText(newText)
-    
+
     // Clear existing timeout
     if (textTimeoutRef.current) {
       clearTimeout(textTimeoutRef.current)
@@ -79,44 +91,13 @@ export default function DialogLineEditor({
     // Set new timeout for debounced save
     textTimeoutRef.current = setTimeout(async () => {
       if (!selectedLanguageId || !dialogGroupId) return
-
-      // If no entry exists, create one with a UUID key
-      if (!entry) {
-        const uuid = crypto.randomUUID()
-        
-        // Create the entry
-        const entryRes = await fetch(`/api/projects/${projectId}/groups/${dialogGroupId}/entries`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key: uuid, comment: 'Dialog line' }),
-        })
-
-        if (entryRes.ok) {
-          const newEntry = await entryRes.json()
-          
-          // Create the initial translation
-          if (newText.trim()) {
-            await fetch(`/api/projects/${projectId}/groups/${dialogGroupId}/entries/${newEntry.id}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ languageId: selectedLanguageId, text: newText }),
-            })
-          }
-
-          // Update the line to reference this entry
-          onChange({ ...editedLine, textKey: uuid })
-          // Only refresh when creating new entry to get the entry data
-          onRefresh()
-        }
-      } else {
-        // Entry exists, update the translation
-        await fetch(`/api/projects/${projectId}/groups/${dialogGroupId}/entries/${entry.id}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ languageId: selectedLanguageId, text: newText }),
-        })
-        // Don't refresh on every translation update to avoid constant reloads
-      }
+      // Entry exists, update the translation
+      await fetch(`/api/projects/${projectId}/groups/${dialogGroupId}/entries/${entry!.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ languageId: selectedLanguageId, text: newText }),
+      })
+      // Don't refresh on every translation update to avoid constant reloads
     }, 800) // 800ms debounce
   }
 
@@ -133,12 +114,25 @@ export default function DialogLineEditor({
     <div className="grid grid-cols-[200px_1fr] gap-2">
       <div>
         <label className="block text-xs font-medium mb-0.5">Speaker</label>
-        <input
-          type="text"
+        <select
           value={editedLine.speaker || ''}
           onChange={(e) => onChange({ ...editedLine, speaker: e.target.value })}
           className="w-full px-1.5 py-0.5 border rounded"
-        />
+        >
+          <option value="">-- Select speaker --</option>
+          {speakersGroup?.entries.map((speakerEntry) => {
+            const speakerTranslation = speakerEntry.translations.find(
+              (t) => t.languageId === selectedLanguageId
+            )
+            const displayName = speakerTranslation?.text || speakerEntry.key
+            const fullKey = buildExportedKey(projectName, speakersGroup.name, speakerEntry.key)
+            return (
+              <option key={speakerEntry.key} value={fullKey}>
+                {displayName}
+              </option>
+            )
+          })}
+        </select>
       </div>
       <div>
         <label className="block text-xs font-medium mb-0.5">

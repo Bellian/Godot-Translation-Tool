@@ -56,17 +56,51 @@ export default async function DialogPage({ params }: Props) {
     },
   })
 
+  // Get speakers translation group
+  const speakersGroup = await prisma.translationGroup.findFirst({
+    where: {
+      projectId: dialog.projectId,
+      name: 'Speaker',
+    },
+    include: {
+      entries: {
+        include: {
+          translations: true,
+        },
+      },
+    },
+  })
+
   // Get project languages
   const projectLanguages = await prisma.projectLanguage.findMany({
     where: { projectId: dialog.projectId },
     include: { language: true },
   })
 
+  // Get all dialog sections from all dialogs in this project
+  const allDialogs = await prisma.dialog.findMany({
+    where: { projectId: dialog.projectId },
+    include: {
+      sections: {
+        select: {
+          sectionId: true,
+        },
+      },
+    },
+  })
+
+  // Extract all unique section IDs prefixed with dialog ID
+  const allDialogSections = Array.from(
+    new Set(
+      allDialogs.flatMap((d) => d.sections.map((s) => `${d.id}.${s.sectionId}`))
+    )
+  ).sort()
+
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <header className="mb-4">
-          <BackButton label={`Back to ${dialog.project.name}`} href={`/project/${dialog.projectId}`} />
+          <BackButton label="Back to Dialogs" href={`/project/${dialog.projectId}/dialogs`} />
           <h1 className="text-3xl font-semibold mt-3">{dialog.name}</h1>
           {dialog.description && <p className="text-gray-600 mt-1">{dialog.description}</p>}
           <p className="text-sm text-gray-500 mt-1">Dialog ID: <span className="font-mono">{dialog.id}</span></p>
@@ -75,11 +109,14 @@ export default async function DialogPage({ params }: Props) {
         <DialogEditor
           dialog={dialog}
           dialogGroup={dialogGroup}
+          speakersGroup={speakersGroup}
+          projectName={dialog.project.name}
           projectLanguages={projectLanguages.map((pl) => ({
             id: pl.language.id,
             code: pl.language.code,
             name: pl.language.name,
           }))}
+          allDialogSections={allDialogSections}
         />
       </div>
     </main>

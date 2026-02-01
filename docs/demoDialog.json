@@ -7,7 +7,7 @@
                     "type": "switch",
                     "condition": {
                         "type": "didDialog",
-                        "value": "dialog1.prologue"
+                        "value": "demoDialog.prologue"
                     },
                     "nextSection": "end"
                 },
@@ -81,7 +81,8 @@
                     "text": "Stop ignoring me!"
                 }
             ]
-        }, {
+        },
+        {
             "id": "end",
             "lines": [
                 {

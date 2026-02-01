@@ -61,13 +61,18 @@ type Dialog = {
 type Props = {
   dialog: Dialog
   dialogGroup: TranslationGroup | null
+  speakersGroup: TranslationGroup | null
+  projectName: string
   projectLanguages: Language[]
+  allDialogSections: string[]
 }
 
-export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: Props) {
+export default function DialogEditor({ dialog, dialogGroup, speakersGroup, projectName, projectLanguages, allDialogSections }: Props) {
   const router = useRouter()
   const [sections, setSections] = useState<DialogSection[]>(dialog.sections)
   const [startSection, setStartSection] = useState(dialog.startSection || '')
+  const [dialogName, setDialogName] = useState(dialog.name)
+  const [dialogId, setDialogId] = useState(dialog.id)
   const [expandedSection, setExpandedSection] = useState<number | null>(null)
   const [draggedLine, setDraggedLine] = useState<{ sectionId: number; lineId: number } | null>(null)
 
@@ -78,6 +83,8 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
   useEffect(() => {
     setSections(dialog.sections)
     setStartSection(dialog.startSection || '')
+    setDialogName(dialog.name)
+    setDialogId(dialog.id)
   }, [dialog])
 
   // Load saved language preference from localStorage
@@ -104,6 +111,41 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
   // Section management
   const [creatingSection, setCreatingSection] = useState(false)
   const [newSectionId, setNewSectionId] = useState('')
+
+  const handleUpdateDialog = async () => {
+    if (!dialogName.trim()) {
+      alert('Dialog name cannot be empty')
+      return
+    }
+
+    if (!dialogId.trim()) {
+      alert('Dialog ID cannot be empty')
+      return
+    }
+
+    const res = await fetch(`/api/dialogs/${dialog.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: dialogName.trim(),
+        id: dialogId.trim(),
+        startSection: startSection || null
+      }),
+    })
+
+    if (res.ok) {
+      alert('Dialog updated successfully')
+      // If the ID changed, redirect to the new URL
+      if (dialogId !== dialog.id) {
+        router.push(`/dialog/${dialogId}`)
+      } else {
+        router.refresh()
+      }
+    } else {
+      const error = await res.json()
+      alert(`Error: ${error.error || 'Failed to update dialog'}`)
+    }
+  }
 
   const handleUpdateStartSection = async () => {
     const res = await fetch(`/api/dialogs/${dialog.id}`, {
@@ -164,8 +206,8 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
 
     if (res.ok) {
       const newLine = await res.json()
-      setSections(sections.map((s) => 
-        s.id === sectionDbId 
+      setSections(sections.map((s) =>
+        s.id === sectionDbId
           ? { ...s, lines: [...s.lines, newLine] }
           : s
       ))
@@ -194,6 +236,18 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
     window.location.href = `/api/dialogs/${dialog.id}/export`
   }
 
+  const handleCopyToClipboard = async () => {
+    try {
+      const res = await fetch(`/api/dialogs/${dialog.id}/export`)
+      if (res.ok) {
+        const jsonData = await res.text()
+        await navigator.clipboard.writeText(jsonData)
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   const handleDragStart = (sectionId: number, lineId: number) => {
     setDraggedLine({ sectionId, lineId })
   }
@@ -210,7 +264,7 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
 
     const sourceSection = sections.find(s => s.id === draggedLine.sectionId)
     const targetSection = sections.find(s => s.id === targetSectionId)
-    
+
     if (!sourceSection || !targetSection) {
       setDraggedLine(null)
       return
@@ -227,14 +281,14 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
       const newLines = [...sourceSection.lines]
       const sourceIndex = newLines.findIndex(l => l.id === draggedLine.lineId)
       const targetIndex = newLines.findIndex(l => l.id === targetLineId)
-      
+
       newLines.splice(sourceIndex, 1)
       newLines.splice(targetIndex, 0, sourceLine)
 
       // Update orders
       const updatedLines = newLines.map((line, index) => ({ ...line, order: index }))
 
-      setSections(sections.map(s => 
+      setSections(sections.map(s =>
         s.id === targetSectionId ? { ...s, lines: updatedLines } : s
       ))
 
@@ -252,44 +306,70 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
 
   return (
     <div className="space-y-6">
-      {/* Dialog Visualization */}
-      <DialogVisualization sections={sections} startSection={startSection} />
-
       {/* Start Section Config */}
-      <section className="bg-white p-6 rounded shadow">
-        <div className="flex items-center justify-between mb-4">
+      <section className="bg-white p-4 rounded shadow">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-semibold">Dialog Settings</h2>
-          <button
-            onClick={handleExport}
-            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            Export Dialog JSON
-          </button>
-        </div>
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Default Display Language</label>
-          <select
-            value={selectedLanguageId || ''}
-            onChange={(e) => handleLanguageChange(parseInt(e.target.value, 10))}
-            className="w-full px-3 py-2 border rounded"
-          >
-            {projectLanguages.map((lang) => (
-              <option key={lang.id} value={lang.id}>
-                {lang.name} ({lang.code})
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            This language will be displayed in dialog lines instead of translation keys
-          </p>
-        </div>
-        <div className="mb-3">
-          <label className="block text-sm font-medium mb-1">Start Section</label>
           <div className="flex gap-2">
+            <button
+              onClick={handleCopyToClipboard}
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Copy JSON
+            </button>
+            <button
+              onClick={handleExport}
+              className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Export Dialog JSON
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          <div>
+            <label className="block text-sm font-medium mb-1">Dialog Name</label>
+            <input
+              type="text"
+              value={dialogName}
+              onChange={(e) => setDialogName(e.target.value)}
+              className="w-full px-3 py-1.5 border rounded text-sm"
+              placeholder="Enter dialog name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Dialog ID</label>
+            <input
+              type="text"
+              value={dialogId}
+              onChange={(e) => setDialogId(e.target.value)}
+              className="w-full px-3 py-1.5 border rounded text-sm"
+              placeholder="Enter dialog ID"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Default Display Language</label>
+            <select
+              value={selectedLanguageId || ''}
+              onChange={(e) => handleLanguageChange(parseInt(e.target.value, 10))}
+              className="w-full px-3 py-1.5 border rounded text-sm"
+            >
+              {projectLanguages.map((lang) => (
+                <option key={lang.id} value={lang.id}>
+                  {lang.name} ({lang.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Start Section</label>
             <select
               value={startSection}
               onChange={(e) => setStartSection(e.target.value)}
-              className="flex-1 px-3 py-2 border rounded"
+              className="w-full px-3 py-1.5 border rounded text-sm"
             >
               <option value="">-- Select a section --</option>
               {sections.map((section) => (
@@ -298,14 +378,15 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
                 </option>
               ))}
             </select>
-            <button
-              onClick={handleUpdateStartSection}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            >
-              Save
-            </button>
           </div>
         </div>
+
+        <button
+          onClick={handleUpdateDialog}
+          className="w-full px-4 py-1.5 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
+        >
+          Save Dialog Settings
+        </button>
       </section>
 
       {/* Sections */}
@@ -421,9 +502,12 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
                           dialogId={dialog.id}
                           projectId={dialog.projectId}
                           dialogGroup={dialogGroup}
+                          speakersGroup={speakersGroup}
+                          projectName={projectName}
                           projectLanguages={projectLanguages}
                           selectedLanguageId={selectedLanguageId}
                           sections={sections}
+                          allDialogSections={allDialogSections}
                           onDelete={() => handleDeleteLine(section.id, line.id)}
                           onRefresh={() => router.refresh()}
                         />
@@ -476,6 +560,9 @@ export default function DialogEditor({ dialog, dialogGroup, projectLanguages }: 
           ))}
         </div>
       </section>
+
+      {/* Dialog Visualization */}
+      <DialogVisualization sections={sections} startSection={startSection} />
     </div>
   )
 }

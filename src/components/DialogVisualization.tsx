@@ -30,6 +30,8 @@ type Link = {
   target: string
   label?: string
   sourceLineId?: number
+  optionIndex?: number // For spreading out multiple options from same line
+  totalOptions?: number // Total number of options from this line
 }
 
 type D3Node = Node & d3.SimulationNodeDatum
@@ -90,6 +92,8 @@ export default function DialogVisualization({ sections, startSection }: Props) {
       nodeMap.set(section.sectionId, node)
     })
 
+    console.log('Created nodes. NodeMap keys:', Array.from(nodeMap.keys()))
+
     // Create links based on line types
     sections.forEach((section) => {
       section.lines.forEach((line) => {
@@ -118,28 +122,43 @@ export default function DialogVisualization({ sections, startSection }: Props) {
           }
         } else if (line.type === 'options' && line.data) {
           // Options line contains JSON with multiple choices
+          console.log('Found options line:', line.id, 'data:', line.data)
           try {
-            const options = JSON.parse(line.data)
-            if (Array.isArray(options)) {
-              options.forEach((option: ParsedOption, index: number) => {
-                if (option.nextSection && nodeMap.has(option.nextSection)) {
-                  links.push({
-                    source: section.sectionId,
-                    target: option.nextSection,
-                    label: `option ${index + 1}`,
-                    sourceLineId: line.id,
-                  })
-                }
+            const parsed = JSON.parse(line.data)
+            console.log('Parsed options:', parsed)
+            // Options data is structured as {"options": [...]}
+            const optionsArray = Array.isArray(parsed) ? parsed : parsed.options
+            if (Array.isArray(optionsArray)) {
+              console.log('Options array, length:', optionsArray.length)
+              const validOptions = optionsArray.filter((opt: ParsedOption) => {
+                const isValid = opt.nextSection && nodeMap.has(opt.nextSection)
+                console.log('  Option:', opt, 'nextSection:', opt.nextSection, 'exists in nodeMap:', nodeMap.has(opt.nextSection || ''), 'isValid:', isValid)
+                return isValid
               })
+              console.log('Valid options count:', validOptions.length)
+              validOptions.forEach((option: ParsedOption, index: number) => {
+                const link = {
+                  source: section.sectionId,
+                  target: option.nextSection!,
+                  label: `option ${index + 1}`,
+                  sourceLineId: line.id,
+                  optionIndex: index,
+                  totalOptions: validOptions.length,
+                }
+                console.log('Creating option link:', link)
+                links.push(link)
+              })
+            } else {
+              console.log('No valid options array found')
             }
-          } catch {
-            // Invalid JSON, skip
+          } catch (e) {
+            console.error('Failed to parse options JSON:', e, 'data was:', line.data)
           }
         } else if (line.type === 'switch' && line.data) {
           // Switch line contains JSON with condition and nextSection
           try {
             const switchData = JSON.parse(line.data) as ParsedSwitchData
-            
+
             // Check for direct nextSection property
             if (switchData.nextSection && nodeMap.has(switchData.nextSection)) {
               links.push({
@@ -149,7 +168,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
                 sourceLineId: line.id,
               })
             }
-            
+
             // Also check for cases array format (alternative structure)
             if (switchData.cases && Array.isArray(switchData.cases)) {
               switchData.cases.forEach((caseItem) => {
@@ -202,7 +221,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
 
     // Create arrow markers for links
     const defs = svg.append('defs')
-    
+
     defs
       .append('marker')
       .attr('id', 'arrowhead')
@@ -215,7 +234,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
       .append('path')
       .attr('d', 'M0,-5L10,0L0,5')
       .attr('fill', '#3b82f6')
-    
+
     defs
       .append('marker')
       .attr('id', 'arrowhead-gray')
@@ -235,7 +254,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
         const speaker = line.speaker ? `${line.speaker}: ` : ''
         return `${speaker}${line.textKey ? `[${line.textKey}]` : ''}`
       }
-      
+
       // Show target sections for jump types
       if (line.type === 'nextSection' && lineData) {
         try {
@@ -245,7 +264,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
           return `→ ${lineData.trim()}`
         }
       }
-      
+
       if (line.type === 'switch' && lineData) {
         try {
           const switchData = JSON.parse(lineData) as ParsedSwitchData
@@ -266,12 +285,14 @@ export default function DialogVisualization({ sections, startSection }: Props) {
           // Invalid JSON
         }
       }
-      
+
       if (line.type === 'options' && lineData) {
         try {
-          const options = JSON.parse(lineData)
-          if (Array.isArray(options)) {
-            const targets = options
+          const parsed = JSON.parse(lineData)
+          // Options data is structured as {"options": [...]}
+          const optionsArray = Array.isArray(parsed) ? parsed : parsed.options
+          if (Array.isArray(optionsArray)) {
+            const targets = optionsArray
               .map((o: ParsedOption) => o.nextSection)
               .filter((t): t is string => Boolean(t))
             if (targets.length > 0) {
@@ -282,7 +303,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
           // Invalid JSON
         }
       }
-      
+
       return line.type
     }
 
@@ -308,15 +329,18 @@ export default function DialogVisualization({ sections, startSection }: Props) {
         d3
           .forceLink<D3Node, D3Link>(links)
           .id((d) => d.id)
-          .distance(350)
+          .distance(500)
       )
-      .force('charge', d3.forceManyBody().strength(-2000))
+      .force('charge', d3.forceManyBody().strength(-800))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .force('collision', d3.forceCollide().radius(150))
 
     // Create links - must be BEFORE nodes so they render behind
     const linkGroup = g.append('g').attr('class', 'links')
-    
+
+    console.log('Total links to create:', links.length)
+    console.log('Links data:', links)
+
     const link = linkGroup
       .selectAll('path')
       .data(links)
@@ -327,12 +351,16 @@ export default function DialogVisualization({ sections, startSection }: Props) {
       .attr('fill', 'none')
       .attr('marker-end', (d) => (d.sourceLineId ? 'url(#arrowhead)' : 'url(#arrowhead-gray)'))
       .attr('opacity', 0.8)
-    
-    console.log('Created links:', links.length)
+      .attr('d', 'M0,0 L0,0') // Initial path so it exists in DOM
+      .attr('data-source', (d) => d.source.toString())
+      .attr('data-target', (d) => d.target.toString())
+      .attr('data-label', (d) => d.label || '')
+
+    console.log('Created link elements:', link.size())
 
     // Add link labels
     const linkLabelGroup = g.append('g').attr('class', 'link-labels')
-    
+
     const linkLabels = linkLabelGroup
       .selectAll('text')
       .data(links)
@@ -347,7 +375,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
 
     // Create nodes
     const nodeGroup = g.append('g').attr('class', 'nodes')
-    
+
     const node = nodeGroup
       .selectAll('g')
       .data(nodes)
@@ -357,7 +385,7 @@ export default function DialogVisualization({ sections, startSection }: Props) {
         d3
           .drag<SVGGElement, D3Node>()
           .on('start', (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart()
+            if (!event.active) simulation.alphaTarget(0.01).restart()
             d.fx = d.x
             d.fy = d.y
           })
@@ -468,34 +496,45 @@ export default function DialogVisualization({ sections, startSection }: Props) {
         const sourceNode = nodes.find((n) => n.id === source.id)
         const targetNode = nodes.find((n) => n.id === target.id)
         const sourceLineId = d.sourceLineId
-        
+
         if (!sourceNode || !targetNode || source.x === undefined || source.y === undefined || target.x === undefined || target.y === undefined) return ''
-        
+
         // Calculate source position (right edge of the line)
         const sourceX = source.x + 125
         let sourceY = source.y
-        
+
         if (sourceLineId) {
           const sourceLine = sourceNode.lines.find((l) => l.id === sourceLineId)
           if (sourceLine) {
             sourceY = source.y + getLineY(sourceLine.order) - getNodeHeight(sourceNode) / 2
+
+            // If this is one of multiple options, spread them out vertically
+            if (d.optionIndex !== undefined && d.totalOptions !== undefined && d.totalOptions > 1) {
+              const spreadRange = 15 // pixels to spread across
+              const offset = (d.optionIndex - (d.totalOptions - 1) / 2) * spreadRange / Math.max(1, d.totalOptions - 1)
+              sourceY += offset
+            }
           }
         }
 
-        // Calculate target position (left edge of target node)
+        // Calculate target position (middle of left edge of target node)
         const targetX = target.x - 125
-        const targetY = target.y - getNodeHeight(targetNode) / 2 + 15 // Aim for the header
+        const targetY = target.y // Middle of the node
 
-        // Draw curved path
+        // Draw curved path with horizontal start and end angles
         const dx = targetX - sourceX
         const dy = targetY - sourceY
-        const dr = Math.sqrt(dx * dx + dy * dy) * 0.8
 
-        // Use quadratic bezier curve for better control
-        const midX = sourceX + dx / 2
-        const midY = sourceY + dy / 2
-        
-        return `M${sourceX},${sourceY} Q${midX + dr / 4},${midY} ${targetX},${targetY}`
+        // Control point 1: start horizontally from source
+        const horizontalDistance = Math.max(150, Math.abs(dx) * 0.4)
+        const controlX = sourceX + horizontalDistance
+        const controlY = sourceY // Keep same Y for horizontal start
+
+        // Control point 2: enter horizontally into target
+        const control2X = targetX - Math.max(150, Math.abs(dx) * 0.4)
+        const control2Y = targetY // Keep same Y for horizontal entry
+
+        return `M${sourceX},${sourceY} C${controlX},${controlY} ${control2X},${control2Y} ${targetX},${targetY}`
       })
 
       linkLabels
@@ -504,17 +543,17 @@ export default function DialogVisualization({ sections, startSection }: Props) {
           const target = d.target as D3Node
           const sourceNode = nodes.find((n) => n.id === source.id)
           const sourceLineId = d.sourceLineId
-          
+
           if (source.x === undefined || target.x === undefined) return 0
-          
+
           let sourceX = source.x + 125
           if (sourceNode && sourceLineId) {
             sourceX = source.x + 125
           }
-          
+
           const targetNode = nodes.find((n) => n.id === target.id)
           const targetX = targetNode ? target.x - 125 : target.x
-          
+
           return (sourceX + targetX) / 2
         })
         .attr('y', (d) => {
@@ -523,19 +562,26 @@ export default function DialogVisualization({ sections, startSection }: Props) {
           const sourceNode = nodes.find((n) => n.id === source.id)
           const targetNode = nodes.find((n) => n.id === target.id)
           const sourceLineId = d.sourceLineId
-          
+
           if (source.y === undefined || target.y === undefined) return 0
-          
+
           let sourceY = source.y
           if (sourceNode && sourceLineId) {
             const sourceLine = sourceNode.lines.find((l) => l.id === sourceLineId)
             if (sourceLine) {
               sourceY = source.y + getLineY(sourceLine.order) - getNodeHeight(sourceNode) / 2
+
+              // Apply same vertical spread as the link
+              if (d.optionIndex !== undefined && d.totalOptions !== undefined && d.totalOptions > 1) {
+                const spreadRange = 15
+                const offset = (d.optionIndex - (d.totalOptions - 1) / 2) * spreadRange / Math.max(1, d.totalOptions - 1)
+                sourceY += offset
+              }
             }
           }
-          
+
           const targetY = targetNode ? target.y - getNodeHeight(targetNode) / 2 + 15 : target.y
-          
+
           return (sourceY + targetY) / 2 - 5
         })
 
